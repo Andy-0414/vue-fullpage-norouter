@@ -2,7 +2,11 @@
     <div id="app">
         <div id="virtual-scroll">
             <Main></Main>
-            <Next></Next>
+
+            <div class="column">
+                <Next></Next>
+                <Main></Main>
+            </div>
         </div>
     </div>
 </template>
@@ -23,7 +27,9 @@ export default {
             clear: true,
 
             currentX: 0,
-            currentY: 0
+            currentY: 0,
+
+            routerData: [[{}], [{}, {}]]
         };
     },
     mounted() {
@@ -57,7 +63,7 @@ export default {
             startPointY = e.clientY;
         });
         this.app.addEventListener("mousemove", e => {
-            if (!e.which) {
+            if (!e.which && mouseDownStart) {
                 mouseDownStart = false;
                 this.setPosition();
             }
@@ -70,19 +76,9 @@ export default {
         });
         this.app.addEventListener("mouseup", e => {
             var gapX = e.clientX - startPointX;
-            if (gapX < -100) {
-                this.currentX++;
-            }
-            if (gapX > 100) {
-                this.currentX--;
-            }
             var gapY = e.clientY - startPointY;
-            if (gapY < -100) {
-                this.currentY++;
-            }
-            if (gapY > 100) {
-                this.currentY--;
-            }
+            this.calcGap(gapX, gapY);
+
             this.setPosition();
             mouseDownStart = false;
         });
@@ -104,29 +100,42 @@ export default {
         });
         this.app.addEventListener("touchend", e => {
             var gapX = endPointX - startPointX;
-            if (gapX < -100) {
-                this.currentX++;
-            }
-            if (gapX > 100) {
-                this.currentX--;
-            }
             var gapY = endPointY - startPointY;
-            if (gapY < -100) {
-                this.currentY++;
-            }
-            if (gapY > 100) {
-                this.currentY--;
-            }
+            this.calcGap(gapX, gapY);
+
             this.setPosition();
             mouseDownStart = false;
         });
     },
     methods: {
+        calcGap(gapX, gapY) {
+            if (gapY < -100 && this.currentY < this.getCurrentLineY) {
+                this.currentY++;
+            } else if (gapY > 100 && this.getCurrentLineY) {
+                this.currentY--;
+            } else if (gapX < -100 && this.currentX < this.getCurrentLineX) {
+                this.currentX++;
+            } else if (gapX > 100 && this.currentX > 0) {
+                this.currentX--;
+            }
+        },
         setPosition(addX = 0, addY = 0) {
             this.virtualScroll.style.top = `${-this.currentY * innerHeight +
                 addY}px`;
             this.virtualScroll.style.left = `${-this.currentX * innerWidth +
-                addX}px`;
+                addX * this.getCurrentLineX}px`;
+        }
+    },
+    computed: {
+        getCurrentLineX() {
+            return this.routerData[this.currentY].length - 1;
+        },
+        getCurrentLineY() {
+            return (
+                this.routerData.filter(x => {
+                    return x.length > this.currentX;
+                }).length - 1
+            );
         }
     }
 };
@@ -158,5 +167,8 @@ export default {
     top: 0;
 
     transition: 1s cubic-bezier(0.175, 0.885, 0.32, 1);
+}
+.column {
+    display: flex;
 }
 </style>
